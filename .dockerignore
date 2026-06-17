@@ -1,0 +1,8 @@
+.git
+.github
+examples
+tests
+*.md
+.gitignore
+.DS_Store
+__pycache__

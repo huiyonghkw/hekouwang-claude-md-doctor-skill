@@ -2,6 +2,7 @@
 
 [简体中文](README.md) · **English**
 
+[![CI](https://github.com/huiyonghkw/hekouwang-claude-md-doctor/actions/workflows/ci.yml/badge.svg)](https://github.com/huiyonghkw/hekouwang-claude-md-doctor/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 ![Python](https://img.shields.io/badge/python-3.x-blue.svg)
 ![dependencies](https://img.shields.io/badge/dependencies-zero-brightgreen.svg)
@@ -58,6 +59,24 @@ python3 check.py [project_dir]          # defaults to CWD, prints a colored repo
 python3 check.py [project_dir] --json   # machine-readable JSON (for CI)
 ```
 Exit code: `1` if any FAIL, else `0` (usable as a CI gate).
+
+### Docker (no Python needed)
+```bash
+docker build -t claude-md-doctor .
+docker run --rm -v "$PWD:/work" claude-md-doctor            # check current project
+docker run --rm -v "$PWD:/work" claude-md-doctor /work --json
+```
+
+### Gate your PRs (GitHub Actions)
+```yaml
+- uses: actions/setup-python@v5
+  with: { python-version: "3.x" }
+- name: CLAUDE.md health check (fail the PR if non-compliant)
+  run: |
+    curl -sO https://raw.githubusercontent.com/huiyonghkw/hekouwang-claude-md-doctor/main/check.py
+    python3 check.py .
+```
+This repo's own CI lives in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) (syntax + good/bad fixtures + JSON validity).
 
 ## Free / Paid (Freemium)
 
