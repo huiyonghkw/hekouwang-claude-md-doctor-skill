@@ -62,6 +62,10 @@ Exit code: `1` if any FAIL, else `0` (usable as a CI gate).
 
 ### Docker (no Python needed)
 ```bash
+# Pull the prebuilt image (auto-published to GHCR on each tag via GitHub Actions)
+docker run --rm -v "$PWD:/work" ghcr.io/huiyonghkw/hekouwang-claude-md-doctor
+
+# Or build locally
 docker build -t claude-md-doctor .
 docker run --rm -v "$PWD:/work" claude-md-doctor            # check current project
 docker run --rm -v "$PWD:/work" claude-md-doctor /work --json

@@ -59,6 +59,10 @@ python3 check.py [项目目录] --json   # 机器可读 JSON（CI 可用）
 
 ### Docker（不想装 Python 也能跑）
 ```bash
+# 拉官方镜像直接用（打 tag 时 GitHub Actions 自动发布到 GHCR）
+docker run --rm -v "$PWD:/work" ghcr.io/huiyonghkw/hekouwang-claude-md-doctor
+
+# 或本地自建
 docker build -t claude-md-doctor .
 docker run --rm -v "$PWD:/work" claude-md-doctor            # 体检当前项目
 docker run --rm -v "$PWD:/work" claude-md-doctor /work --json
