@@ -5,7 +5,7 @@ hekouwang-claude-md-doctor-skill · CLAUDE.md 体检器（确定性机检层）
 会勇禾口王的AI笔记 · @huiyonghkw —— 不聊 AI 会不会取代你，只聊先用 AI 的人怎么取代你。
 
 零依赖（仅用 Python3 标准库）。对一个项目目录里的 CLAUDE.md 做启发式检查，
-按"运行时配置而非项目说明书"的 9 条最佳实践打分，输出可读报告 + 修复线索。
+按"运行时配置而非项目说明书"的 10 条最佳实践打分，输出可读报告 + 修复线索。
 
 用法:
     python3 check.py [项目目录]            # 默认当前目录
@@ -38,6 +38,18 @@ def cyan(s):  return _c("36", s)
 ICON = {"PASS": "✓", "WARN": "▲", "FAIL": "✗", "INFO": "·"}
 COLOR = {"PASS": green, "WARN": yellow, "FAIL": red, "INFO": cyan}
 WEIGHT = {"PASS": 1.0, "WARN": 0.5, "FAIL": 0.0}  # INFO 不计分
+
+# ---------- 各检查项重要度权重（"减法优先"）----------
+# 让"越短越准"类核心项更重；"加内容"类项（Hook/记忆/人格）缺了只算小扣分。
+# 否则工具会一边喊"越短越好"，一边因为"没写工作风格块"扣人分，逼用户把文件写长。
+IMPORTANCE = {
+    # 减法核心：短、可执行、路由不堆料、别替模型补它已会的
+    "exist": 1.5, "length": 1.5, "actionable": 1.5, "router": 1.5, "noteach": 1.5,
+    # 标准项
+    "donot": 1.0, "local": 1.0, "thirtysec": 1.0,
+    # 加内容项：有更好，但缺失不重罚（别逼用户做加法）
+    "hooks": 0.6, "memory": 0.6, "persona": 0.6,
+}
 
 # ---------- 扫描时忽略的目录 ----------
 IGNORE_DIRS = {
@@ -76,6 +88,16 @@ VAGUE = [
     "clean code", "keep it simple", "be concise", "write good code",
     "high quality", "high-quality", "follow best practices", "best practices",
     "readable code", "maintainable", "elegant", "well-written", "idiomatic code",
+]
+
+# ---------- 教学型措辞（#10：替模型补它"已经会"的通用知识 = 随模型升级很快过时的冗余）----------
+# 命中这些 = 多半在教模型怎么写常规代码 / 怎么用主流框架，而不是写项目私有事实。
+# 强信号、低误伤为主；最终是否冗余仍要读正文，脚本只 WARN 提示。
+TEACHING = [
+    "使用教程", "入门教程", "新手教程", "使用方法", "使用指南", "如何使用",
+    "怎么用", "怎样使用", "教程：", "教程:", "示例教程",
+    "step by step", "step-by-step", "follow these steps", "how to use",
+    "getting started", "tutorial",
 ]
 
 # 架构/流程图特征字符（箭头 + 方框角）。注意：├└│ 等"树连接符"不在此列——
@@ -187,7 +209,9 @@ def analyze_body(text):
 def check(root):
     results = []
     def add(key, title, status, detail, fix=""):
-        results.append({"key": key, "title": title, "status": status, "detail": detail, "fix": fix})
+        results.append({"key": key, "title": title, "status": status,
+                        "detail": detail, "fix": fix,
+                        "imp": IMPORTANCE.get(key, 1.0)})
 
     root = os.path.abspath(root)
     md_path, md_name = find_target_md(root)
@@ -349,6 +373,30 @@ def check(root):
             "三问信号不足。",
             "顶部补一段 30 秒速览：产品一句话 + 技术栈 + 目录/落点。")
 
+    # #10 别替模型补它已经会的（教学型措辞 = 随模型升级很快过时的冗余）
+    teach_hits = []
+    for w in TEACHING:
+        for m in re.finditer(re.escape(w), text, re.I):
+            ln_no = text[:m.start()].count("\n") + 1
+            teach_hits.append((w, ln_no))
+    teach_heading = re.search(
+        r"(?m)^#{1,4}\s.*(教程|tutorial|使用指南|使用说明|如何使用|how to use|getting started)",
+        text, re.I)
+    if not teach_hits and not teach_heading:
+        add("noteach", "别替模型补它已经会的（无教学型冗余）", "PASS",
+            "未检出'教模型写常规代码/用主流框架'的教学型措辞。")
+    else:
+        bits = []
+        if teach_heading:
+            bits.append(f"疑似教学小节：'{teach_heading.group(0).lstrip('#').strip()[:30]}'")
+        if teach_hits:
+            sample = "; ".join(f"L{n}:'{w}'" for w, n in teach_hits[:5])
+            bits.append(f"{len(teach_hits)} 处教学型措辞（{sample}）")
+        add("noteach", "别替模型补它已经会的（无教学型冗余）", "WARN",
+            "；".join(bits) + "。这类内容随模型升级自动变强，写进常驻正文只是为'很快过时的东西'每次付费。",
+            "读正文确认：若是教通用写法/框架用法，删掉——CLAUDE.md 只装模型不可能知道的"
+            "项目私有事实（数据模型/命名约定/内部红线/版本环境）。")
+
     return {
         "root": root, "md_name": md_name, "results": results,
         "info": info, "nested": scan_nested_claude(root), "sensitive": sensitive,
@@ -359,8 +407,10 @@ def score(results):
     scored = [r for r in results if r["status"] in WEIGHT]
     if not scored:
         return 0, "—"
-    s = sum(WEIGHT[r["status"]] for r in scored) / len(scored) * 100
-    s = round(s)
+    # 按重要度加权：减法核心项更重，加内容项缺失不重罚
+    num = sum(WEIGHT[r["status"]] * r.get("imp", 1.0) for r in scored)
+    den = sum(r.get("imp", 1.0) for r in scored)
+    s = round(num / den * 100)
     if s >= 85:   grade = "A · 优秀"
     elif s >= 70: grade = "B · 良好"
     elif s >= 50: grade = "C · 及格"

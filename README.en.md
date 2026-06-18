@@ -32,9 +32,15 @@ session and costs tokens every time. Is this line worth paying for on every sing
 Most people write `CLAUDE.md` like a project manual: history, tech decisions,
 marketing prose — easily over a thousand lines. The model then drowns in a bloated
 context and loses the room it needs to actually understand your code. This tool
-freezes 9 checkable best practices into a one-command audit anyone can run.
+freezes 10 checkable best practices into a one-command audit anyone can run.
 
-## The 9 checks
+Its guiding stance is the **context minimalism** that Claude Code's creators
+Boris Cherny and Cat Wu preach — *don't fight the model by adding things*: models
+get stronger every generation, so the scaffolding you laboriously build today
+goes stale fast. Scoring is therefore weighted "subtraction-first": the
+shorter-is-sharper core checks count more, missing "add-content" checks count less.
+
+## The 10 checks
 
 1. **Length ≤ 200 lines** — a router, not a library
 2. **A "Do NOT introduce" list** — block well-meant but incompatible deps
@@ -43,8 +49,10 @@ freezes 9 checkable best practices into a one-command audit anyone can run.
 5. **Local CLAUDE.md for high-risk modules** — money / auth / migrations
 6. **Hooks enforce the critical rules** — don't rely on the model's memory
 7. **A MEMORY.md cross-session loop**
-8. **A working-style block** — who you are / what you hate
+8. **A working-style block** — who you are / what you hate (cap 3–5 lines)
 9. **The 30-second test** — product? stack? where does new code go?
+10. **Don't teach the model what it already knows** — no "how to use X / tutorial"
+    prose that goes stale the moment the model improves
 
 ## Usage
 
