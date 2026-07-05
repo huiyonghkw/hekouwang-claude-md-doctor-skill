@@ -1,5 +1,6 @@
 ---
 name: hekouwang-claude-md-doctor-skill
+version: 1.2.1
 description: >
   会勇禾口王的AI笔记 · CLAUDE.md 体检器。检查一个项目的 CLAUDE.md（及子目录本地
   CLAUDE.md）是否符合"把它当运行时配置、不是项目说明书"的最佳实践，给出评分卡 +
