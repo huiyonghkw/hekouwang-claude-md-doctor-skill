@@ -9,6 +9,8 @@
   内置 `/doctor` 查整套 Claude Code 运行环境（安装/未用扩展/上下文膨胀/权限/版本），
   本 skill 只查一份 CLAUDE.md 的写法质量。给出对比表 + 唯一交集（`/doctor` Check 2/3 碰 CLAUDE.md
   但只从上下文成本看、不评质量）+ 用法建议（先 `/doctor` 发现文档偏大，再用本 skill 深度评 + 重构）。
+- **README.md / README.en.md 同步**：两份 README 也各补一节「这不是内置的 `/doctor` 命令」
+  （精简对比表 + 唯一交集 + 组合用法），中英一致。
 
 ## [1.2.1] - 2026-06-22
 
